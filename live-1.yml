@@ -1,0 +1,28 @@
+name: live-match-bot
+
+on:
+  schedule:
+    - cron: "0 */3 * * *"   # әр 3 сағат сайын (UTC)
+  workflow_dispatch:         # қолмен іске қосу батырмасы
+
+concurrency:
+  group: live-match
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - run: python live_bot.py
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          API_KEY: ${{ secrets.API_KEY }}
+          TEAM_ID: "529"
+          POLL_SECONDS: "100"
