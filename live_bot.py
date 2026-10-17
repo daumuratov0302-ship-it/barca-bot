@@ -21,6 +21,109 @@ POLL_SECONDS = int(os.getenv("POLL_SECONDS", "90"))        # 90 сек ≈ 80 с
 API = "https://v3.football.api-sports.io"
 HEADERS = {"x-apisports-key": API_KEY}
 
+# ====== ҚАЗАҚША АТТАР ======
+import unicodedata
+
+TEAMS_KK = {
+    "barcelona": "Барселона", "real madrid": "Реал Мадрид", "real betis": "Бетис",
+    "atletico madrid": "Атлетико Мадрид", "sevilla": "Севилья", "valencia": "Валенсия",
+    "villarreal": "Вильярреал", "athletic club": "Атлетик", "real sociedad": "Реал Сосьедад",
+    "girona": "Хирона", "getafe": "Хетафе", "osasuna": "Осасуна", "celta vigo": "Сельта",
+    "mallorca": "Мальорка", "rayo vallecano": "Райо Вальекано", "espanyol": "Эспаньол",
+    "alaves": "Алавес", "las palmas": "Лас-Пальмас", "elche": "Эльче", "levante": "Леванте",
+    "real oviedo": "Овьедо", "oviedo": "Овьедо", "valladolid": "Вальядолид",
+    "paris saint germain": "ПСЖ", "paris saint-germain": "ПСЖ", "bayern munich": "Бавария",
+    "manchester city": "Манчестер Сити", "manchester united": "Манчестер Юнайтед",
+    "liverpool": "Ливерпуль", "chelsea": "Челси", "arsenal": "Арсенал",
+    "tottenham": "Тоттенхэм", "newcastle": "Ньюкасл", "inter": "Интер", "ac milan": "Милан",
+    "juventus": "Ювентус", "napoli": "Наполи", "roma": "Рома", "lazio": "Лацио",
+    "atalanta": "Аталанта", "borussia dortmund": "Боруссия Дортмунд",
+    "bayer leverkusen": "Байер", "benfica": "Бенфика", "porto": "Порту",
+    "sporting cp": "Спортинг", "ajax": "Аякс", "psv eindhoven": "ПСВ", "monaco": "Монако",
+    "club brugge": "Брюгге", "olympiakos piraeus": "Олимпиакос", "slavia praha": "Славия",
+}
+
+# Ойыншылар: кілт сөз (кіші әріппен, белгісіз) -> қазақша аты. Бірінші сәйкес тұрған алынады.
+PLAYERS_KK = {
+    "olmo": "Дани Ольмо", "gavira": "Гави", "cubarsi": "Пау Кубарси",
+    "lamine yamal": "Ламин Ямал", "yamal": "Ламин Ямал", "lewandowski": "Левандовски",
+    "raphinha": "Рафинья", "pedri": "Педри", "araujo": "Рональд Араухо",
+    "kounde": "Жюль Кунде", "balde": "Алехандро Бальде", "ter stegen": "тер Штеген",
+    "szczesny": "Шчесны", "joan garcia": "Жоан Гарсия", "eric garcia": "Эрик Гарсия",
+    "de jong": "Френки де Йонг", "casado": "Марк Касадо", "bernal": "Марк Бернал",
+    "fermin": "Фермин Лопес", "ferran torres": "Ферран Торрес", "rashford": "Рашфорд",
+    "bardghji": "Бардджи", "christensen": "Кристенсен", "gerard martin": "Херард Мартин",
+    "gabriel jesus": "Габриэл Жезус",
+    "mbappe": "Мбаппе", "vinicius": "Винисиус", "bellingham": "Беллингем",
+    "courtois": "Куртуа", "rodrygo": "Родригу", "valverde": "Вальверде",
+    "camavinga": "Камавинга", "tchouameni": "Чуамени", "militao": "Милитан",
+    "alaba": "Алаба", "rudiger": "Рюдигер", "daniel carvajal": "Дани Карвахаль",
+    "dani carvajal": "Дани Карвахаль", "alexander-arnold": "Александер-Арнольд",
+    "mastantuono": "Мастантуоно", "huijsen": "Хёйсен", "endrick": "Эндрик",
+    "arda guler": "Арда Гюлер", "fran garcia": "Фран Гарсия", "mendy": "Менди",
+    "asencio": "Асенсио", "carreras": "Каррерас",
+    "isco": "Иско", "antony": "Антони", "lo celso": "Ло Сельсо", "fornals": "Форналс",
+}
+
+
+def _ascii(s):
+    return "".join(
+        c for c in unicodedata.normalize("NFKD", s.lower()) if not unicodedata.combining(c)
+    )
+
+
+_DIGRAPHS = [("sch", "ш"), ("sh", "ш"), ("ch", "ч"), ("zh", "ж"), ("ph", "ф"),
+             ("ck", "к"), ("qu", "к"), ("ll", "лл"), ("rr", "рр"), ("th", "т")]
+_LETTERS = dict(zip("abdefhiklmnoprstuvwxyz",
+                    "абдефхиклмнопрстувв кйз".replace(" ", "")))
+_LETTERS.update({"g": "г", "j": "х", "q": "к", "w": "в", "x": "кс", "y": "й", "c": "к"})
+
+
+def translit(word):
+    w = _ascii(word)
+    out, i = [], 0
+    while i < len(w):
+        for lat, kk in _DIGRAPHS:
+            if w.startswith(lat, i):
+                out.append(kk)
+                i += len(lat)
+                break
+        else:
+            ch = w[i]
+            if ch == "c" and w[i + 1:i + 2] in ("e", "i"):
+                out.append("с")
+            elif ch in _LETTERS:
+                out.append(_LETTERS[ch])
+            else:
+                out.append(ch)
+            i += 1
+    res = "".join(out)
+    return res[:1].upper() + res[1:] if res else res
+
+
+def kk_team(name):
+    key = _ascii(name or "")
+    if key in TEAMS_KK:
+        return TEAMS_KK[key]
+    for k, v in TEAMS_KK.items():
+        if len(k) > 5 and k in key:
+            return v
+    return " ".join(translit(p) for p in (name or "").split())
+
+
+def kk_player(name):
+    if not name:
+        return name
+    key = _ascii(name)
+    for k, v in PLAYERS_KK.items():
+        if k in key:
+            return v
+    parts = name.split()
+    if len(parts) > 2:  # ұзын толық аттан алғашқы және соңғы сөзді аламыз
+        parts = [parts[0], parts[-1]]
+    return " ".join(translit(p) for p in parts)
+# ===========================
+
 
 def api_get(path, **params):
     r = requests.get(f"{API}{path}", headers=HEADERS, params=params, timeout=20)
@@ -45,16 +148,16 @@ def minute(ev):
 
 
 def score_line(fx):
-    h, a = fx["teams"]["home"]["name"], fx["teams"]["away"]["name"]
+    h, a = kk_team(fx["teams"]["home"]["name"]), kk_team(fx["teams"]["away"]["name"])
     gh, ga = fx["goals"]["home"] or 0, fx["goals"]["away"] or 0
     return f"{h} {gh}–{ga} {a}"
 
 
 def format_event(ev, fx):
     typ, det = ev["type"], ev["detail"]
-    team = ev["team"]["name"]
-    player = ev["player"]["name"] or "—"
-    assist = ev["assist"]["name"]
+    team = kk_team(ev["team"]["name"])
+    player = kk_player(ev["player"]["name"]) or "—"
+    assist = kk_player(ev["assist"]["name"])
     m = minute(ev)
 
     if typ == "Goal":
@@ -126,7 +229,7 @@ def main():
 
     wait_for_kickoff(fx)
     if time.time() - ts < 600:  # матч жаңа басталса ғана хабар жібереміз
-        send(f"🔴 Матч басталды!\n{fx['teams']['home']['name']} — {fx['teams']['away']['name']}")
+        send(f"🔴 Матч басталды!\n{kk_team(fx['teams']['home']['name'])} — {kk_team(fx['teams']['away']['name'])}")
 
     seen, ht_sent = set(), False
     # Іске қосқан сәтте бұрыннан бар оқиғаларды қайта жазбау үшін (қайта қосылғанда)
